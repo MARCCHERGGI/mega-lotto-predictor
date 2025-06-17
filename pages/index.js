@@ -4,6 +4,7 @@ export default function Home() {
   const [combo, setCombo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [agentStats, setAgentStats] = useState([]);
+  const [thoughts, setThoughts] = useState([]);
 
   const getNumbers = async () => {
     setLoading(true);
@@ -14,7 +15,6 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Poll agent metrics from local simulated memory/logs (optional)
     const fetchStats = async () => {
       try {
         const res = await fetch('/api/agents/status');
@@ -26,6 +26,21 @@ export default function Home() {
     };
     fetchStats();
     const interval = setInterval(fetchStats, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const fetchThoughts = async () => {
+      try {
+        const res = await fetch('/api/agents/feed');
+        const data = await res.json();
+        setThoughts(data);
+      } catch (e) {
+        setThoughts([]);
+      }
+    };
+    fetchThoughts();
+    const interval = setInterval(fetchThoughts, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -128,10 +143,40 @@ export default function Home() {
                 Last update: {agent.lastUpdated}
               </p>
               <p style={{ fontSize: '0.9rem' }}>
-                Status: <span style={{ color: agent.status === 'OK' ? 'green' : 'orange' }}>{agent.status}</span>
+                Status:{' '}
+                <span style={{ color: agent.status === 'OK' ? 'green' : 'orange' }}>
+                  {agent.status}
+                </span>
               </p>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: '4rem', width: '100%', maxWidth: '900px' }}>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>🧠 Agent Thought Log</h2>
+        <div
+          style={{
+            background: '#111',
+            color: '#0f0',
+            fontFamily: 'monospace',
+            fontSize: '0.85rem',
+            padding: '1rem',
+            borderRadius: '12px',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            boxShadow: '0 0 20px rgba(0,0,0,0.1)',
+          }}
+        >
+          {thoughts.length === 0 ? (
+            <p style={{ color: '#888' }}>Waiting for thoughts...</p>
+          ) : (
+            thoughts.map((t, i) => (
+              <div key={i} style={{ marginBottom: '0.5rem' }}>
+                [{new Date(t.time).toLocaleTimeString()}] <strong>{t.agent}</strong>: {t.message}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </main>
