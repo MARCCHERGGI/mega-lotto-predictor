@@ -1,9 +1,12 @@
 import { parseCSV } from '../utils/parseCSV';
 import fs from 'fs';
 import path from 'path';
+import { logThought } from '../utils/logThought';
 
 export default async function runClusterAgent() {
   const data = await parseCSV();
+  logThought('ClusterAgent', `Loaded ${data.length} draw records for gap analysis.`);
+
   const gapMap = {};
   let totalGaps = 0;
 
@@ -20,27 +23,28 @@ export default async function runClusterAgent() {
     }
   });
 
-  // Sort gaps by frequency
   const sorted = Object.entries(gapMap)
     .sort((a, b) => b[1] - a[1])
     .map(([gap, count]) => ({
       gap: Number(gap),
       count,
-      percentage: ((count / totalGaps) * 100).toFixed(2)
+      percentage: ((count / totalGaps) * 100).toFixed(2),
     }));
 
-  // Pick top 3 most common gaps
   const topGaps = sorted.slice(0, 3).map(g => g.gap);
 
   const result = {
     timestamp: new Date().toISOString(),
     totalGaps,
     topGaps,
-    sortedGaps: sorted
+    sortedGaps: sorted,
   };
 
-  const outputPath = path.join('/tmp', 'clusterAgent.json'); // ✅ Vercel-safe path
+  const outputPath = path.join('/tmp', 'clusterAgent.json');
   fs.writeFileSync(outputPath, JSON.stringify(result, null, 2));
+
+  logThought('ClusterAgent', `Top gaps: ${topGaps.join(', ')} | Total gaps analyzed: ${totalGaps}`);
 
   return result;
 }
+
