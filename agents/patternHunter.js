@@ -17,12 +17,21 @@ export default async function runPatternHunter() {
   // Sort by frequency
   const sorted = Object.entries(freqMap)
     .sort((a, b) => b[1] - a[1])
-    .map(([num, count]) => ({ number: Number(num), count }));
+    .map(([num, count]) => ({
+      number: Number(num),
+      count,
+      percentage: ((count / data.length) * 100).toFixed(2)
+    }));
 
-  // Save to public logs
-  const outputPath = path.join(process.cwd(), 'public', 'logs', 'patternHunter.json');
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, JSON.stringify(sorted, null, 2));
+  const output = {
+    timestamp: new Date().toISOString(),
+    totalDraws: data.length,
+    topNumbers: sorted.slice(0, 10).map(n => n.number),
+    sorted
+  };
 
-  return sorted;
+  const outputPath = path.join('/tmp', 'patternHunter.json'); // ✅ Vercel-safe
+  fs.writeFileSync(outputPath, JSON.stringify(output, null, 2));
+
+  return output;
 }
