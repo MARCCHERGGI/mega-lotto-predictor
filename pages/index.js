@@ -6,43 +6,56 @@ export default function Home() {
   const [agentStats, setAgentStats] = useState([]);
   const [thoughts, setThoughts] = useState([]);
 
-  const getNumbers = async () => {
-    setLoading(true);
-    const res = await fetch('/api/predict');
-    const data = await res.json();
-    setCombo(data);
-    setLoading(false);
-  };
+  // 1️⃣ Trigger the background loop (once)
+  useEffect(() => {
+    fetch('/api/agents/trigger').catch(console.error);
+  }, []);
 
+  // 2️⃣ Fetch agent status
   useEffect(() => {
     const fetchStats = async () => {
       try {
         const res = await fetch('/api/agents/status');
         const data = await res.json();
         setAgentStats(data);
-      } catch (e) {
+      } catch {
         setAgentStats([]);
       }
     };
     fetchStats();
-    const interval = setInterval(fetchStats, 5000);
-    return () => clearInterval(interval);
+    const id = setInterval(fetchStats, 5000);
+    return () => clearInterval(id);
   }, []);
 
+  // 3️⃣ Fetch thought log
   useEffect(() => {
     const fetchThoughts = async () => {
       try {
         const res = await fetch('/api/agents/feed');
         const data = await res.json();
         setThoughts(data);
-      } catch (e) {
+      } catch {
         setThoughts([]);
       }
     };
     fetchThoughts();
-    const interval = setInterval(fetchThoughts, 10000);
-    return () => clearInterval(interval);
+    const id = setInterval(fetchThoughts, 10000);
+    return () => clearInterval(id);
   }, []);
+
+  // 4️⃣ On-demand prediction
+  const getNumbers = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/predict');
+      const data = await res.json();
+      setCombo(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main
@@ -82,29 +95,29 @@ export default function Home() {
           boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
           transition: 'all 0.3s ease',
           opacity: loading ? 0.6 : 1,
+          marginBottom: '2rem',
         }}
       >
         {loading ? 'Thinking...' : 'Generate My Winning Numbers'}
       </button>
 
       {combo && (
-        <div style={{ marginTop: '3rem', maxWidth: '800px', textAlign: 'left' }}>
+        <section style={{ marginBottom: '3rem', maxWidth: 800, textAlign: 'left' }}>
           <p style={{ fontSize: '1.25rem' }}>
             <strong>Main Numbers:</strong> {combo.main.join(', ')}
           </p>
           <p style={{ fontSize: '1.25rem' }}>
             <strong>Mega Ball:</strong> {combo.mega}
           </p>
-
           {combo.explanation && (
             <div
               style={{
-                marginTop: '2rem',
+                marginTop: '1.5rem',
                 background: '#fff',
                 padding: '1.5rem',
                 borderRadius: '12px',
                 boxShadow: '0 0 20px rgba(0,0,0,0.05)',
-                lineHeight: '1.6',
+                lineHeight: 1.6,
                 fontSize: '0.95rem',
                 whiteSpace: 'pre-wrap',
               }}
@@ -113,10 +126,10 @@ export default function Home() {
               <div style={{ marginTop: '0.8rem' }}>{combo.explanation}</div>
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      <div style={{ marginTop: '4rem', width: '100%', maxWidth: '900px' }}>
+      <section style={{ width: '100%', maxWidth: 900, marginBottom: '3rem' }}>
         <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>📡 Agent System Monitor</h2>
         <div
           style={{
@@ -128,9 +141,9 @@ export default function Home() {
           {agentStats.length === 0 && (
             <p style={{ fontStyle: 'italic', color: '#666' }}>Loading agent activity...</p>
           )}
-          {agentStats.map((agent, idx) => (
+          {agentStats.map((agent, i) => (
             <div
-              key={idx}
+              key={i}
               style={{
                 background: '#fff',
                 padding: '1rem',
@@ -151,9 +164,9 @@ export default function Home() {
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div style={{ marginTop: '4rem', width: '100%', maxWidth: '900px' }}>
+      <section style={{ width: '100%', maxWidth: 900 }}>
         <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>🧠 Agent Thought Log</h2>
         <div
           style={{
@@ -163,22 +176,23 @@ export default function Home() {
             fontSize: '0.85rem',
             padding: '1rem',
             borderRadius: '12px',
-            maxHeight: '300px',
+            maxHeight: 300,
             overflowY: 'auto',
             boxShadow: '0 0 20px rgba(0,0,0,0.1)',
           }}
         >
           {thoughts.length === 0 ? (
-            <p style={{ color: '#888' }}>Waiting for thoughts...</p>
+            <p style={{ color: '#888', margin: 0 }}>Waiting for thoughts...</p>
           ) : (
             thoughts.map((t, i) => (
               <div key={i} style={{ marginBottom: '0.5rem' }}>
-                [{new Date(t.time).toLocaleTimeString()}] <strong>{t.agent}</strong>: {t.message}
+                [{new Date(t.time).toLocaleTimeString()}]{' '}
+                <strong>{t.agent}</strong>: {t.message}
               </div>
             ))
           )}
         </div>
-      </div>
+      </section>
     </main>
   );
 }
