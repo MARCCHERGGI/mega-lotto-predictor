@@ -7,9 +7,16 @@ const openai = new OpenAI({
 });
 
 function loadLog(file) {
-  const logPath = path.join(process.cwd(), 'public', 'logs', file);
-  if (!fs.existsSync(logPath)) return null;
-  return JSON.parse(fs.readFileSync(logPath, 'utf8'));
+  const filePath = path.join('/tmp', file); // ✅ Read from /tmp
+  if (!fs.existsSync(filePath)) return null;
+
+  try {
+    const raw = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error(`Failed to read ${file}:`, err);
+    return null;
+  }
 }
 
 export default async function runGPTCombiner() {
@@ -20,25 +27,23 @@ export default async function runGPTCombiner() {
   const memory = loadLog('drawMemory.json');
 
   const context = `
-You are a lottery prediction strategist.
+You are a lottery strategist AI trained to optimize Mega Millions predictions using the latest agent intelligence.
 
-Here is current analysis data:
-- Top frequent numbers: ${pattern?.slice(0, 10).map(n => n.number).join(', ')}
-- Most common gaps: ${cluster?.slice(0, 5).map(g => g.gap).join(', ')}
-- Repeating numbers from last 20 draws: ${repeat?.map(r => `${r.number}(${r.count})`).join(', ')}
-- Simulation success rate: ${sim?.matchRate}
-- Past 3 predictions: ${
-    memory?.slice(-3).map(m => `[${m.main.join(', ')}] Mega: ${m.mega}`).join(' | ') || 'None'
+Data:
+- Top frequency numbers: ${pattern?.slice(0, 10).map(n => n.number).join(', ') || 'Unavailable'}
+- Most common number gaps: ${cluster?.topGaps.join(', ') || 'N/A'}
+- Recently repeated numbers: ${repeat?.map(r => `${r.number} (${r.count})`).join(', ') || 'None'}
+- Simulation match rate: ${sim?.matchRate || 'Unknown'}
+- Last 3 predictions: ${
+    memory?.slice(-3).map(p => `[${p.main.join(', ')}] MB: ${p.mega}`).join(' | ') || 'None logged'
   }
 
-Now:
-Generate one new prediction based on this data.
-Output 5 main numbers (1–70) and 1 Mega Ball (1–25).
-Then explain your reasoning.
-Format:
-Main: [x, x, x, x, x]
-Mega: x
-Reasoning: ...
+Goal:
+Predict the most promising Mega Millions combination today.
+Return this format:
+Main: [n, n, n, n, n]
+Mega: n
+Reasoning: [short explanation why these numbers are smart]
 `;
 
   const completion = await openai.chat.completions.create({
@@ -49,12 +54,13 @@ Reasoning: ...
 
   const reply = completion.choices[0].message.content;
 
-  const mainMatch = reply.match(/Main: \[(.*?)\]/);
+  const mainMatch = reply.match(/Main:\s*\[(.*?)\]/);
   const megaMatch = reply.match(/Mega:\s*(\d{1,2})/);
 
   const main = mainMatch
     ? mainMatch[1].split(',').map(n => parseInt(n.trim()))
     : [];
+
   const mega = megaMatch ? parseInt(megaMatch[1]) : null;
 
   return {
