@@ -2,11 +2,14 @@ import { useState } from 'react';
 
 export default function Home() {
   const [combo, setCombo] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const getNumbers = async () => {
+    setLoading(true);
     const res = await fetch('/api/predict');
     const data = await res.json();
     setCombo(data);
+    setLoading(false);
   };
 
   return (
@@ -36,6 +39,7 @@ export default function Home() {
 
       <button
         onClick={getNumbers}
+        disabled={loading}
         style={{
           padding: '0.75rem 2rem',
           fontSize: '1rem',
@@ -43,24 +47,42 @@ export default function Home() {
           backgroundColor: '#000',
           color: '#fff',
           border: 'none',
-          cursor: 'pointer',
+          cursor: loading ? 'wait' : 'pointer',
           boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
           transition: 'all 0.3s ease',
+          opacity: loading ? 0.6 : 1,
         }}
-        onMouseOver={(e) => (e.target.style.opacity = 0.8)}
-        onMouseOut={(e) => (e.target.style.opacity = 1)}
       >
-        Get My Numbers
+        {loading ? 'Thinking...' : 'Get My Numbers'}
       </button>
 
       {combo && (
-        <div style={{ marginTop: '2rem', fontSize: '1.25rem' }}>
+        <div style={{ marginTop: '2rem', fontSize: '1.25rem', maxWidth: '800px', textAlign: 'left' }}>
           <p>
             <strong>Main Numbers:</strong> {combo.main.join(', ')}
           </p>
           <p>
             <strong>Mega Ball:</strong> {combo.mega}
           </p>
+
+          {combo.explanation && (
+            <div
+              style={{
+                marginTop: '2rem',
+                padding: '1rem',
+                background: '#fff',
+                borderRadius: '8px',
+                boxShadow: '0 0 15px rgba(0,0,0,0.05)',
+                whiteSpace: 'pre-wrap',
+                overflowX: 'auto',
+                fontSize: '0.95rem',
+                lineHeight: '1.5',
+              }}
+            >
+              <strong>🧠 Agent Reasoning:</strong>
+              <div style={{ marginTop: '0.5rem' }}>{combo.explanation}</div>
+            </div>
+          )}
         </div>
       )}
     </main>
