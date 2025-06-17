@@ -1,13 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { OpenAI } from 'openai';
+import { logThought } from '../utils/logThought';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 function loadLog(file) {
-  const filePath = path.join('/tmp', file); // ✅ Read from /tmp
+  const filePath = path.join('/tmp', file);
   if (!fs.existsSync(filePath)) return null;
 
   try {
@@ -20,6 +21,8 @@ function loadLog(file) {
 }
 
 export default async function runGPTCombiner() {
+  logThought('GPTCombiner', '🤖 Gathering intel from all agents...');
+
   const pattern = loadLog('patternHunter.json');
   const cluster = loadLog('clusterAgent.json');
   const repeat = loadLog('repetitionSniper.json');
@@ -49,7 +52,7 @@ Reasoning: [short explanation why these numbers are smart]
   const completion = await openai.chat.completions.create({
     model: 'gpt-4',
     messages: [{ role: 'user', content: context }],
-    temperature: 1.1
+    temperature: 1.1,
   });
 
   const reply = completion.choices[0].message.content;
@@ -63,9 +66,12 @@ Reasoning: [short explanation why these numbers are smart]
 
   const mega = megaMatch ? parseInt(megaMatch[1]) : null;
 
+  logThought('GPTCombiner', `🎯 Prediction: ${main.join(', ')} + MB ${mega}`);
+  logThought('GPTCombiner', `🧠 Reasoning: ${reply.slice(0, 160)}...`);
+
   return {
     main,
     mega,
-    explanation: reply
+    explanation: reply,
   };
 }
