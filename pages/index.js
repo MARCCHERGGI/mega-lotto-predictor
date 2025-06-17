@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
   const [combo, setCombo] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [agentStats, setAgentStats] = useState([]);
 
   const getNumbers = async () => {
     setLoading(true);
@@ -12,56 +13,71 @@ export default function Home() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    // Poll agent metrics from local simulated memory/logs (optional)
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/agents/status');
+        const data = await res.json();
+        setAgentStats(data);
+      } catch (e) {
+        setAgentStats([]);
+      }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <main
       style={{
         minHeight: '100vh',
-        background: 'linear-gradient(to bottom, #f8f8f8, #eaeaea)',
+        background: '#f5f5f7',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
         fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-        color: '#111',
-        padding: '2rem',
+        padding: '3rem 1rem',
+        color: '#000',
       }}
     >
       <h1
         style={{
-          fontSize: '3rem',
-          fontWeight: 600,
+          fontSize: '2.75rem',
+          fontWeight: 700,
           marginBottom: '1.5rem',
-          letterSpacing: '-0.03em',
+          letterSpacing: '-0.02em',
         }}
       >
-        Mega Millions Predictor
+        Mega Millions Predictor 🎯
       </h1>
 
       <button
         onClick={getNumbers}
         disabled={loading}
         style={{
-          padding: '0.75rem 2rem',
-          fontSize: '1rem',
-          borderRadius: '12px',
+          padding: '0.8rem 2.4rem',
+          fontSize: '1.05rem',
+          borderRadius: '16px',
           backgroundColor: '#000',
           color: '#fff',
           border: 'none',
           cursor: loading ? 'wait' : 'pointer',
-          boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
           transition: 'all 0.3s ease',
           opacity: loading ? 0.6 : 1,
         }}
       >
-        {loading ? 'Thinking...' : 'Get My Numbers'}
+        {loading ? 'Thinking...' : 'Generate My Winning Numbers'}
       </button>
 
       {combo && (
-        <div style={{ marginTop: '2rem', fontSize: '1.25rem', maxWidth: '800px', textAlign: 'left' }}>
-          <p>
+        <div style={{ marginTop: '3rem', maxWidth: '800px', textAlign: 'left' }}>
+          <p style={{ fontSize: '1.25rem' }}>
             <strong>Main Numbers:</strong> {combo.main.join(', ')}
           </p>
-          <p>
+          <p style={{ fontSize: '1.25rem' }}>
             <strong>Mega Ball:</strong> {combo.mega}
           </p>
 
@@ -69,22 +85,55 @@ export default function Home() {
             <div
               style={{
                 marginTop: '2rem',
-                padding: '1rem',
                 background: '#fff',
-                borderRadius: '8px',
-                boxShadow: '0 0 15px rgba(0,0,0,0.05)',
-                whiteSpace: 'pre-wrap',
-                overflowX: 'auto',
+                padding: '1.5rem',
+                borderRadius: '12px',
+                boxShadow: '0 0 20px rgba(0,0,0,0.05)',
+                lineHeight: '1.6',
                 fontSize: '0.95rem',
-                lineHeight: '1.5',
+                whiteSpace: 'pre-wrap',
               }}
             >
-              <strong>🧠 Agent Reasoning:</strong>
-              <div style={{ marginTop: '0.5rem' }}>{combo.explanation}</div>
+              <strong>🤖 GPT Agent Reasoning:</strong>
+              <div style={{ marginTop: '0.8rem' }}>{combo.explanation}</div>
             </div>
           )}
         </div>
       )}
+
+      <div style={{ marginTop: '4rem', width: '100%', maxWidth: '900px' }}>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>📡 Agent System Monitor</h2>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1rem',
+          }}
+        >
+          {agentStats.length === 0 && (
+            <p style={{ fontStyle: 'italic', color: '#666' }}>Loading agent activity...</p>
+          )}
+          {agentStats.map((agent, idx) => (
+            <div
+              key={idx}
+              style={{
+                background: '#fff',
+                padding: '1rem',
+                borderRadius: '12px',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+              }}
+            >
+              <strong>{agent.name}</strong>
+              <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                Last update: {agent.lastUpdated}
+              </p>
+              <p style={{ fontSize: '0.9rem' }}>
+                Status: <span style={{ color: agent.status === 'OK' ? 'green' : 'orange' }}>{agent.status}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
     </main>
   );
 }
