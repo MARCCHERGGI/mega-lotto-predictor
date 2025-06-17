@@ -14,13 +14,15 @@ export default async function runPatternHunter() {
     });
   });
 
+  const totalNumbers = Object.values(freqMap).reduce((a, b) => a + b, 0);
+
   // Sort by frequency
   const sorted = Object.entries(freqMap)
     .sort((a, b) => b[1] - a[1])
     .map(([num, count]) => ({
       number: Number(num),
       count,
-      percentage: ((count / data.length) * 100).toFixed(2)
+      percentage: ((count / totalNumbers) * 100).toFixed(2)
     }));
 
   const output = {
