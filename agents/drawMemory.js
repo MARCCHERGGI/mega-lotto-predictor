@@ -2,18 +2,19 @@ import fs from 'fs';
 import path from 'path';
 
 export default function storePrediction(prediction) {
-  const logPath = path.join(process.cwd(), 'public', 'logs', 'drawMemory.json');
-
-  // Ensure logs dir exists
-  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  const logPath = path.join('/tmp', 'drawMemory.json'); // ✅ Vercel-safe
 
   let existing = [];
   if (fs.existsSync(logPath)) {
-    const raw = fs.readFileSync(logPath, 'utf8');
-    existing = JSON.parse(raw);
+    try {
+      const raw = fs.readFileSync(logPath, 'utf8');
+      existing = JSON.parse(raw);
+    } catch (e) {
+      console.error('Error reading draw memory log:', e);
+      existing = [];
+    }
   }
 
-  // Append new entry
   const entry = {
     timestamp: new Date().toISOString(),
     main: prediction.main,
@@ -22,7 +23,12 @@ export default function storePrediction(prediction) {
   };
 
   existing.push(entry);
-  fs.writeFileSync(logPath, JSON.stringify(existing, null, 2));
+
+  try {
+    fs.writeFileSync(logPath, JSON.stringify(existing, null, 2));
+  } catch (e) {
+    console.error('Failed to save drawMemory log:', e);
+  }
 
   return entry;
 }
