@@ -7,25 +7,31 @@ import runGPTCombiner from './gptCombiner.js';
 import { logThought } from '../utils/logThought.js';
 
 export default async function runCoreTrainer() {
-  logThought('CoreTrainer', '🧠 Starting full training sequence...');
+  try {
+    logThought('CoreTrainer', '🧠 Starting full training sequence...');
 
-  const pattern = await runPatternHunter();
-  logThought('PatternHunter', '✅ Updated top number frequencies.');
+    const pattern = await runPatternHunter();
+    logThought('PatternHunter', '✅ Updated top number frequencies.');
 
-  const cluster = await runClusterAgent();
-  logThought('ClusterAgent', `✅ Identified top gap patterns: ${cluster.topGaps.join(', ')}`);
+    const cluster = await runClusterAgent();
+    logThought('ClusterAgent', `✅ Identified top gap patterns: ${cluster.topGaps.join(', ')}`);
 
-  const repeat = await runRepetitionSniper();
-  logThought('RepetitionSniper', `✅ Found ${repeat.length} numbers repeated in last 20 draws.`);
+    const repeat = await runRepetitionSniper();
+    logThought('RepetitionSniper', `✅ Found ${repeat.repeats.length} numbers repeated in last 20 draws.`);
 
-  const sim = await runSimulationRunner();
-  logThought('SimulationRunner', `✅ Simulation completed — ${sim.matchRate} hit rate.`);
+    const sim = await runSimulationRunner();
+    logThought('SimulationRunner', `✅ Simulation completed — ${sim.matchRate} hit rate.`);
 
-  const prediction = await runGPTCombiner();
-  logThought('GPTCombiner', '✅ GPT-based combination generated.');
+    const prediction = await runGPTCombiner();
+    logThought('GPTCombiner', '✅ GPT-based combination generated.');
 
-  runDrawMemory(prediction);
-  logThought('DrawMemory', '📝 Logged prediction to memory.');
+    await runDrawMemory(prediction);
+    logThought('DrawMemory', '📝 Logged prediction to memory.');
 
-  logThought('CoreTrainer', '🏁 Training sequence complete.');
+    logThought('CoreTrainer', '🏁 Training sequence complete.');
+  } catch (error) {
+    logThought('CoreTrainer', `❌ Error during training sequence: ${error.message}`);
+    console.error('CoreTrainer error:', error);
+  }
 }
+
