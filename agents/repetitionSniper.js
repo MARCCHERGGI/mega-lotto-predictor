@@ -4,6 +4,8 @@ import path from 'path';
 
 export default async function runRepetitionSniper() {
   const data = await parseCSV();
+
+  // Only analyze the last 20 draws
   const recentDraws = data.slice(-20).map(draw =>
     draw.main.split(' ').map(Number)
   );
@@ -13,6 +15,7 @@ export default async function runRepetitionSniper() {
     frequency[num] = (frequency[num] || 0) + 1;
   });
 
+  // Identify repeated numbers (2+ times in last 20)
   const repeats = Object.entries(frequency)
     .filter(([_, count]) => count >= 2)
     .sort((a, b) => b[1] - a[1])
